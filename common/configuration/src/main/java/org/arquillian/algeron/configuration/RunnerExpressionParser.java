@@ -13,16 +13,22 @@
  */
 package org.arquillian.algeron.configuration;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
 
 public class RunnerExpressionParser {
 
     public static final String START_EXPRESSION = "${";
     public static final char END_EXPRESSION = '}';
+    public static final String VALUES_SEPARATOR = ",";
 
     private RunnerExpressionParser() {
     }
 
+    public static List<String> parseListExpression(String value) {
+        return Arrays.asList(parseExpressions(value, new SystemPropertyResolver()).split(VALUES_SEPARATOR));
+    }
     public static String parseExpressions(final String value) {
         return parseExpressions(value, new SystemPropertyResolver());
     }

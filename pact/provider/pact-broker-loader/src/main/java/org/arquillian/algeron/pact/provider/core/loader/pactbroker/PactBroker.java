@@ -20,22 +20,22 @@ public @interface PactBroker {
     /**
      * @return url of pact broker
      */
-    String url();
+    String url() default "${pactbroker.url:}";
 
     /**
      * @return username of pact broker
      */
-    String userame();
+    String userame() default "${pactbroker.auth.username:}";
 
     /**
      * @return password of pact broker
      */
-    String password();
+    String password() default "${pactbroker.auth.password:}";
 
 
     /**
      * Tags to use to fetch pacts for
      */
-    String[] tags() default "latest";
+    String[] tags()  default "${pactbroker.tags:}";
 }
 

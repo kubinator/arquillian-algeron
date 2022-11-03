@@ -6,11 +6,16 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.arquillian.algeron.provider.spi.retriever.ContractsRetriever;
+
+import static org.arquillian.algeron.configuration.RunnerExpressionParser.parseExpressions;
+import static org.arquillian.algeron.configuration.RunnerExpressionParser.parseListExpression;
 
 /**
  * Out-of-the-box implementation of {@link org.arquillian.algeron.provider.spi.retriever.ContractsRetriever} that
@@ -45,17 +50,18 @@ public class PactBrokerLoader implements ContractsRetriever {
     @Override
     public List<URI> retrieve() throws IOException {
 
-        final String url =
-            containsAuthenticationOptions() ? getAuthenticateUrl(this.pactBroker.url()) : this.pactBroker.url();
-        final PactBrokerClient pactBrokerClient = new PactBrokerClient(url);
+        final PactBrokerClient pactBrokerClient = new PactBrokerClient(parseExpressions(pactBroker.url()), getAuthOptions());
 
-        if (this.pactBroker.tags().length == 0) {
+
+        final List<String> tags = Arrays.stream(pactBroker.tags())
+            .flatMap(tagString -> parseListExpression(tagString).stream()).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+        if (tags.size() == 0) {
 
             final List<PactBrokerConsumer> consumerInfos = pactBrokerClient.fetchConsumers(this.providerName);
             return toUri(consumerInfos);
         } else {
             final List<URI> contracts = new ArrayList<>();
-            for (String tag : this.pactBroker.tags()) {
+            for (String tag : tags) {
                 contracts.addAll(
                     toUri(pactBrokerClient.fetchConsumersWithTag(this.providerName, tag)));
             }
@@ -71,23 +77,11 @@ public class PactBrokerLoader implements ContractsRetriever {
             .collect(Collectors.toList());
     }
 
-    private boolean containsAuthenticationOptions() {
-        return !"".equals(this.pactBroker.userame().trim()) && !"".equals(this.pactBroker.password().trim());
-    }
-
-    private String getAuthenticateUrl(String url) {
-        final String username = this.pactBroker.userame();
-        final String password = this.pactBroker.password();
-
-        final int slashIndex = url.indexOf("//");
-
-        if (slashIndex > -1) {
-            url = String.format("%s%s:%s@%s", url.substring(0, slashIndex + 2), username, password,
-                url.substring(slashIndex + 2));
-        } else {
-            url = String.format("%s:%s@%s", username, password, url);
-        }
-        return url;
+    private Map<String, ?> getAuthOptions() {
+        final String pactBrokerUsername = parseExpressions(pactBroker.userame()).trim();
+        final String pactBrokerPassword = parseExpressions(pactBroker.password()).trim();
+        return "".equals(pactBrokerUsername) || "".equals(pactBrokerPassword) ? Collections.emptyMap() :
+            Collections.singletonMap("authentication", Arrays.asList("basic", pactBrokerUsername, pactBrokerPassword));
     }
 
     static class ExternallyConfiguredContractsPactBroker implements PactBroker {

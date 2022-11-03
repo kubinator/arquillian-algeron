@@ -16,7 +16,6 @@ package org.arquillian.algeron.configuration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.StringJoiner;
 
 public class SystemPropertyResolver {
     public String resolveValue(final String property) {
